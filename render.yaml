@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: agentops
+    runtime: python
+    plan: free
+    buildCommand: pip install -e .
+    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agentops-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: agentops-redis
+          type: redis
+          property: connectionString
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+
+  - type: redis
+    name: agentops-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: agentops-db
+    plan: free
+    databaseName: agentops
+    ipAllowList: []

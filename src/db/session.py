@@ -10,12 +10,14 @@ from src.db.models import Base
 
 settings = get_settings()
 
+# Use NullPool for serverless environments (Render free tier)
 engine = create_async_engine(
     settings.db.url,
     echo=settings.db.echo,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    poolclass=NullPool if settings.app_env == "production" else None,
+    pool_size=10 if settings.app_env != "production" else None,
+    max_overflow=20 if settings.app_env != "production" else None,
 )
 
 async_session_factory = async_sessionmaker(
