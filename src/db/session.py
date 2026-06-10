@@ -10,9 +10,14 @@ from src.db.models import Base
 
 settings = get_settings()
 
+# Ensure async URL format
+db_url = settings.db.url
+if db_url.startswith("postgresql://") and "+asyncpg" not in db_url:
+    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 # Use NullPool for serverless environments (Render free tier)
 engine = create_async_engine(
-    settings.db.url,
+    db_url,
     echo=settings.db.echo,
     pool_pre_ping=True,
     poolclass=NullPool if settings.app_env == "production" else None,
