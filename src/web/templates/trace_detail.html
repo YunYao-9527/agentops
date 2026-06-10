@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Trace Detail - AgentOps{% endblock %}
+{% block nav_traces %}text-white bg-gray-800{% endblock %}
+{% block page_title %}Trace Detail{% endblock %}
+
+{% block content %}
+<div x-data="traceDetail('{{ trace_id }}')" x-init="load()" x-cloak>
+    <!-- Trace Header -->
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="text-xl font-bold" x-text="trace.name"></h2>
+                <p class="text-sm text-gray-500 mt-1" x-text="'ID: ' + trace.id"></p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-sm font-medium"
+                  :class="trace.status === 'ok' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                  x-text="trace.status"></span>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
+            <div>
+                <div class="text-xs text-gray-500">Latency</div>
+                <div class="font-medium" x-text="(trace.latency_ms || 0).toFixed(0) + 'ms'"></div>
+            </div>
+            <div>
+                <div class="text-xs text-gray-500">Total Tokens</div>
+                <div class="font-medium" x-text="(trace.total_tokens || 0).toLocaleString()"></div>
+            </div>
+            <div>
+                <div class="text-xs text-gray-500">Cost</div>
+                <div class="font-medium" x-text="'$' + (trace.total_cost_usd || 0).toFixed(4)"></div>
+            </div>
+            <div>
+                <div class="text-xs text-gray-500">Spans</div>
+                <div class="font-medium" x-text="(trace.spans || []).length"></div>
+            </div>
+            <div>
+                <div class="text-xs text-gray-500">Time</div>
+                <div class="font-medium text-xs" x-text="new Date(trace.start_time).toLocaleString()"></div>
+            </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="flex gap-2 mt-3" x-show="trace.tags && trace.tags.length > 0">
+            <template x-for="tag in trace.tags" :key="tag">
+                <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs" x-text="tag"></span>
+            </template>
+        </div>
+    </div>
+
+    <!-- Input/Output -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="font-semibold mb-3 text-gray-700">Input</h3>
+            <pre class="text-xs bg-gray-50 p-3 rounded overflow-auto max-h-48"
+                 x-text="JSON.stringify(trace.input, null, 2)"></pre>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-6">
+            <h3 class="font-semibold mb-3 text-gray-700">Output</h3>
+            <pre class="text-xs bg-gray-50 p-3 rounded overflow-auto max-h-48"
+                 x-text="JSON.stringify(trace.output, null, 2)"></pre>
+        </div>
+    </div>
+
+    <!-- Span Tree -->
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+        <h3 class="font-semibold mb-4 text-gray-700">Span Tree</h3>
+        <div class="space-y-2">
+            <template x-for="span in buildTree(trace.spans || [])" :key="span.id">
+                <div>
+                    <div class="flex items-center gap-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                         :style="'padding-left: ' + (span.level * 24 + 12) + 'px'"
+                         @click="span.expanded = !span.expanded">
+                        <span class="w-2 h-2 rounded-full"
+                              :class="{
+                                  'bg-blue-500': span.type === 'llm',
+                                  'bg-green-500': span.type === 'tool',
+                                  'bg-gray-400': span.type === 'chain',
+                                  'bg-yellow-500': span.type === 'event',
+                              }"></span>
+                        <span class="font-medium text-sm" x-text="span.name"></span>
+                        <span class="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600" x-text="span.type"></span>
+                        <span class="text-xs text-gray-400 ml-auto" x-text="(span.latency_ms || 0).toFixed(0) + 'ms'"></span>
+                        <span class="text-xs text-gray-400" x-text="span.total_tokens + ' tok'"></span>
+                        <span class="px-1.5 py-0.5 rounded text-xs"
+                              :class="span.status === 'ok' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'"
+                              x-text="span.status"></span>
+                    </div>
+                    <!-- Expanded details -->
+                    <div x-show="span.expanded" x-collapse class="ml-12 mt-2 p-3 bg-gray-50 rounded text-xs">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="font-semibold text-gray-600 mb-1">Input</div>
+                                <pre class="whitespace-pre-wrap break-all" x-text="JSON.stringify(span.input, null, 2)"></pre>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-600 mb-1">Output</div>
+                                <pre class="whitespace-pre-wrap break-all" x-text="JSON.stringify(span.output, null, 2)"></pre>
+                            </div>
+                        </div>
+                        <div x-show="span.model" class="mt-2 text-gray-500">
+                            Model: <span class="font-mono" x-text="span.model"></span>
+                        </div>
+                        <div x-show="span.tool_name" class="mt-1 text-gray-500">
+                            Tool: <span class="font-mono" x-text="span.tool_name"></span>
+                        </div>
+                        <div x-show="span.error" class="mt-2 text-red-600">
+                            Error: <span x-text="span.error"></span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Scores -->
+    <div class="bg-white rounded-xl shadow-sm border p-6" x-show="trace.scores && trace.scores.length > 0">
+        <h3 class="font-semibold mb-4 text-gray-700">Scores</h3>
+        <div class="space-y-2">
+            <template x-for="score in trace.scores" :key="score.id">
+                <div class="flex items-center gap-4 p-3 border rounded-lg">
+                    <span class="font-medium text-sm" x-text="score.name"></span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                        <div class="h-2 rounded-full" :class="score.value >= 0.7 ? 'bg-green-500' : score.value >= 0.4 ? 'bg-yellow-500' : 'bg-red-500'"
+                             :style="'width: ' + (score.value * 100) + '%'"></div>
+                    </div>
+                    <span class="text-sm font-medium" x-text="score.value.toFixed(2)"></span>
+                    <span class="px-2 py-0.5 rounded text-xs" :class="score.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                          x-text="score.passed ? 'PASS' : 'FAIL'"></span>
+                    <span class="text-xs text-gray-400" x-text="score.source"></span>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+<script>
+function traceDetail(traceId) {
+    return {
+        trace: {},
+        async load() {
+            try {
+                const res = await fetch('/api/v1/traces/' + traceId);
+                this.trace = await res.json();
+            } catch (e) {
+                console.error('Failed to load trace:', e);
+            }
+        },
+        buildTree(spans) {
+            // Build a flat list with level information
+            const byId = {};
+            spans.forEach(s => { byId[s.id] = {...s, expanded: false, children: []}; });
+            const roots = [];
+            spans.forEach(s => {
+                if (s.parent_id && byId[s.parent_id]) {
+                    byId[s.parent_id].children.push(byId[s.id]);
+                } else {
+                    roots.push(byId[s.id]);
+                }
+            });
+            // Flatten with DFS
+            const result = [];
+            function dfs(node, level) {
+                node.level = level;
+                result.push(node);
+                node.children.forEach(c => dfs(c, level + 1));
+            }
+            roots.forEach(r => dfs(r, 0));
+            return result;
+        }
+    }
+}
+</script>
+{% endblock %}

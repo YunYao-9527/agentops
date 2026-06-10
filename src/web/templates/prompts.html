@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Prompts - AgentOps{% endblock %}
+{% block nav_prompts %}text-white bg-gray-800{% endblock %}
+{% block page_title %}Prompt Management{% endblock %}
+
+{% block content %}
+<div x-data="prompts()" x-init="load()" x-cloak>
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">All Prompts</h3>
+            <button @click="showCreate = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                + New Prompt
+            </button>
+        </div>
+
+        <template x-if="promptList.length > 0">
+            <div class="space-y-3">
+                <template x-for="p in promptList" :key="p.id">
+                    <div class="border rounded-lg p-4 hover:bg-gray-50">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-medium" x-text="p.name"></h4>
+                                <p class="text-sm text-gray-500" x-text="p.description || 'No description'"></p>
+                            </div>
+                            <div class="flex gap-2">
+                                <template x-for="(ver, label) in p.labels" :key="label">
+                                    <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs"
+                                          x-text="label + ' v' + ver"></span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-2">
+                            Latest: v<span x-text="p.latest_version"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+        <template x-if="promptList.length === 0">
+            <p class="text-gray-400 text-center py-8">No prompts yet.</p>
+        </template>
+    </div>
+
+    <!-- Create Modal -->
+    <div x-show="showCreate" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md" @click.outside="showCreate = false">
+            <h3 class="font-semibold mb-4">Create Prompt</h3>
+            <input type="text" placeholder="Prompt name" x-model="newName"
+                   class="w-full px-3 py-2 border rounded-lg mb-3">
+            <input type="text" placeholder="Description (optional)" x-model="newDesc"
+                   class="w-full px-3 py-2 border rounded-lg mb-4">
+            <div class="flex justify-end gap-2">
+                <button @click="showCreate = false" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+                <button @click="create()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function prompts() {
+    return {
+        promptList: [],
+        showCreate: false,
+        newName: '',
+        newDesc: '',
+        async load() {
+            try {
+                const res = await fetch('/api/v1/prompts');
+                this.promptList = await res.json();
+            } catch (e) {
+                console.error('Failed to load prompts:', e);
+            }
+        },
+        async create() {
+            if (!this.newName) return;
+            await fetch('/api/v1/prompts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name: this.newName, description: this.newDesc }),
+            });
+            this.showCreate = false;
+            this.newName = '';
+            this.newDesc = '';
+            this.load();
+        }
+    }
+}
+</script>
+{% endblock %}

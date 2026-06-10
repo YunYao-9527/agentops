@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AgentOps{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data="{ sidebarOpen: false }">
+    <!-- Sidebar -->
+    <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-200 ease-in-out"
+           :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+        <div class="flex items-center h-16 px-6 bg-gray-800">
+            <h1 class="text-xl font-bold text-white">🔍 AgentOps</h1>
+        </div>
+        <nav class="mt-6 px-4 space-y-1">
+            <a href="/" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
+                       {% block nav_dashboard %}text-gray-300 hover:bg-gray-800{% endblock %}">
+                📊 Dashboard
+            </a>
+            <a href="/traces" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
+                       {% block nav_traces %}text-gray-300 hover:bg-gray-800{% endblock %}">
+                🔗 Traces
+            </a>
+            <a href="/prompts" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
+                       {% block nav_prompts %}text-gray-300 hover:bg-gray-800{% endblock %}">
+                📝 Prompts
+            </a>
+            <a href="/datasets" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
+                       {% block nav_datasets %}text-gray-300 hover:bg-gray-800{% endblock %}">
+                📁 Datasets
+            </a>
+            <a href="/evaluations" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
+                       {% block nav_evaluations %}text-gray-300 hover:bg-gray-800{% endblock %}">
+                🧪 Evaluations
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main content -->
+    <div class="lg:ml-64">
+        <!-- Top bar -->
+        <header class="h-16 bg-white border-b flex items-center px-6">
+            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden mr-4">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            <h2 class="text-lg font-semibold text-gray-800">{% block page_title %}Dashboard{% endblock %}</h2>
+        </header>
+
+        <!-- Page content -->
+        <main class="p-6">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

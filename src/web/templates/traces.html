@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Traces - AgentOps{% endblock %}
+{% block nav_traces %}text-white bg-gray-800{% endblock %}
+{% block page_title %}Trace Explorer{% endblock %}
+
+{% block content %}
+<div x-data="traces()" x-init="load()" x-cloak>
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border p-4 mb-6 flex gap-4 flex-wrap">
+        <input type="text" placeholder="Search traces..." x-model="search"
+               @keyup.enter="load()"
+               class="px-3 py-2 border rounded-lg text-sm flex-1 min-w-[200px]">
+        <select x-model="statusFilter" @change="load()" class="px-3 py-2 border rounded-lg text-sm">
+            <option value="">All Status</option>
+            <option value="ok">OK</option>
+            <option value="error">Error</option>
+        </select>
+        <button @click="load()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+            Search
+        </button>
+    </div>
+
+    <!-- Trace List -->
+    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="px-4 py-3 text-left">Name</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-right">Latency</th>
+                    <th class="px-4 py-3 text-right">Tokens</th>
+                    <th class="px-4 py-3 text-right">Cost</th>
+                    <th class="px-4 py-3 text-right">Spans</th>
+                    <th class="px-4 py-3 text-left">Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="t in traces" :key="t.id">
+                    <tr class="border-b hover:bg-gray-50 cursor-pointer"
+                        @click="window.location.href = '/traces/' + t.id">
+                        <td class="px-4 py-3 font-medium" x-text="t.name"></td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                  :class="t.status === 'ok' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                                  x-text="t.status"></span>
+                        </td>
+                        <td class="px-4 py-3 text-right text-gray-600" x-text="(t.latency_ms || 0).toFixed(0) + 'ms'"></td>
+                        <td class="px-4 py-3 text-right text-gray-600" x-text="t.total_tokens.toLocaleString()"></td>
+                        <td class="px-4 py-3 text-right text-gray-600" x-text="'$' + (t.total_cost_usd || 0).toFixed(4)"></td>
+                        <td class="px-4 py-3 text-right text-gray-600" x-text="t.span_count"></td>
+                        <td class="px-4 py-3 text-gray-500 text-xs" x-text="new Date(t.start_time).toLocaleString()"></td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+
+        <template x-if="traces.length === 0">
+            <p class="text-gray-400 text-center py-12">No traces found.</p>
+        </template>
+
+        <!-- Pagination -->
+        <div class="px-4 py-3 border-t bg-gray-50 flex justify-between items-center text-sm">
+            <span class="text-gray-500" x-text="'Total: ' + total"></span>
+            <div class="flex gap-2">
+                <button @click="page > 1 && (page--, load())" :disabled="page <= 1"
+                        class="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
+                <span class="px-3 py-1" x-text="'Page ' + page"></span>
+                <button @click="traces.length === pageSize && (page++, load())"
+                        :disabled="traces.length < pageSize"
+                        class="px-3 py-1 border rounded disabled:opacity-50">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function traces() {
+    return {
+        traces: [],
+        total: 0,
+        page: 1,
+        pageSize: 50,
+        search: '',
+        statusFilter: '',
+        async load() {
+            const params = new URLSearchParams({ page: this.page, page_size: this.pageSize });
+            if (this.search) params.set('search', this.search);
+            if (this.statusFilter) params.set('status', this.statusFilter);
+            try {
+                const res = await fetch('/api/v1/traces?' + params);
+                const data = await res.json();
+                this.traces = data.items || [];
+                this.total = data.total || 0;
+            } catch (e) {
+                console.error('Failed to load traces:', e);
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

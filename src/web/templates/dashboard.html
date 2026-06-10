@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - AgentOps{% endblock %}
+{% block nav_dashboard %}text-white bg-gray-800{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div x-data="dashboard()" x-init="load()" x-cloak>
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm p-6 border">
+            <div class="text-sm text-gray-500">Total Traces</div>
+            <div class="text-3xl font-bold text-gray-900 mt-1" x-text="metrics.total_traces || 0"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-6 border">
+            <div class="text-sm text-gray-500">Success Rate</div>
+            <div class="text-3xl font-bold mt-1" :class="(metrics.success_rate || 0) >= 0.9 ? 'text-green-600' : 'text-yellow-600'"
+                 x-text="((metrics.success_rate || 0) * 100).toFixed(1) + '%'"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-6 border">
+            <div class="text-sm text-gray-500">Avg Latency</div>
+            <div class="text-3xl font-bold text-gray-900 mt-1" x-text="(metrics.avg_latency_ms || 0).toFixed(0) + 'ms'"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-6 border">
+            <div class="text-sm text-gray-500">Total Cost</div>
+            <div class="text-3xl font-bold text-gray-900 mt-1" x-text="'$' + (metrics.total_cost_usd || 0).toFixed(4)"></div>
+        </div>
+    </div>
+
+    <!-- Model Usage -->
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+        <h3 class="text-lg font-semibold mb-4">Model Usage</h3>
+        <template x-if="metrics.model_usage && metrics.model_usage.length > 0">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Model</th>
+                            <th class="px-4 py-2 text-right">Calls</th>
+                            <th class="px-4 py-2 text-right">Tokens</th>
+                            <th class="px-4 py-2 text-right">Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="m in metrics.model_usage" :key="m.model">
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono text-xs" x-text="m.model"></td>
+                                <td class="px-4 py-2 text-right" x-text="m.calls"></td>
+                                <td class="px-4 py-2 text-right" x-text="m.tokens.toLocaleString()"></td>
+                                <td class="px-4 py-2 text-right" x-text="'$' + m.cost_usd.toFixed(4)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </template>
+        <template x-if="!metrics.model_usage || metrics.model_usage.length === 0">
+            <p class="text-gray-400 text-center py-8">No data yet. Send some traces to get started.</p>
+        </template>
+    </div>
+
+    <!-- Status Distribution -->
+    <div class="bg-white rounded-xl shadow-sm border p-6">
+        <h3 class="text-lg font-semibold mb-4">Status Distribution</h3>
+        <template x-if="metrics.status_distribution && Object.keys(metrics.status_distribution).length > 0">
+            <div class="flex gap-4">
+                <template x-for="(count, status) in metrics.status_distribution" :key="status">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full" :class="status === 'ok' ? 'bg-green-500' : 'bg-red-500'"></span>
+                        <span class="text-sm" x-text="status + ': ' + count"></span>
+                    </div>
+                </template>
+            </div>
+        </template>
+        <template x-if="!metrics.status_distribution || Object.keys(metrics.status_distribution).length === 0">
+            <p class="text-gray-400 text-center py-8">No data yet.</p>
+        </template>
+    </div>
+</div>
+
+<script>
+function dashboard() {
+    return {
+        metrics: {},
+        async load() {
+            try {
+                const res = await fetch('/api/v1/metrics/dashboard');
+                this.metrics = await res.json();
+            } catch (e) {
+                console.error('Failed to load metrics:', e);
+            }
+        }
+    }
+}
+</script>
+{% endblock %}
