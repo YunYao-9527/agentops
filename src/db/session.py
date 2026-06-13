@@ -21,14 +21,17 @@ if not db_url or db_url.startswith("postgresql"):
 
 # Use NullPool for serverless/SQLite, connection pool for PostgreSQL
 is_sqlite = db_url.startswith("sqlite")
-engine = create_async_engine(
-    db_url,
-    echo=settings.db.echo,
-    pool_pre_ping=True,
-    poolclass=NullPool if (settings.app_env == "production" or is_sqlite) else None,
-    pool_size=None if (settings.app_env == "production" or is_sqlite) else 10,
-    max_overflow=None if (settings.app_env == "production" or is_sqlite) else 20,
-)
+engine_kwargs: dict = {
+    "echo": settings.db.echo,
+    "pool_pre_ping": True,
+}
+if is_sqlite or settings.app_env == "production":
+    engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+
+engine = create_async_engine(db_url, **engine_kwargs)
 
 async_session_factory = async_sessionmaker(
     engine,
