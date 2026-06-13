@@ -25,7 +25,10 @@ if _is_postgresql:
     from sqlalchemy.dialects.postgresql import JSONB, UUID
 else:
     JSONB = JSON
-    UUID = String(36)
+
+    def UUID(as_uuid=False):
+        """SQLite-compatible UUID stored as String(36)."""
+        return String(36)
 
 
 class Base(DeclarativeBase):
