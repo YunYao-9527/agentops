@@ -1,10 +1,12 @@
 """SQLAlchemy ORM models for AgentOps."""
 
 import enum
+import os
 import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     DateTime,
     Enum,
     Float,
@@ -15,8 +17,15 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+# Use JSONB on PostgreSQL, plain JSON on SQLite
+_is_postgresql = "postgresql" in os.environ.get("DATABASE_URL", "")
+if _is_postgresql:
+    from sqlalchemy.dialects.postgresql import JSONB, UUID
+else:
+    JSONB = JSON
+    UUID = String(36)
 
 
 class Base(DeclarativeBase):
@@ -107,7 +116,7 @@ class Span(Base):
         UUID(as_uuid=True), ForeignKey("spans.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(256))
-    type: Mapped[SpanType] = mapped_column(Enum(SpanType), default=SpanType.SPAN)
+    type: Mapped[SpanType] = mapped_column(Enum(SpanType), default=SpanType.CHAIN)
 
     # Input/Output
     input_: Mapped[dict | None] = mapped_column("input", JSONB)
