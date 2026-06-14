@@ -86,20 +86,23 @@ async def get_dashboard_metrics(
         )
     ).scalar() or 0
 
-    # Latency stats
-    latency_stats = (
+    # Latency stats (percentile_cont is PostgreSQL-only; compute in Python for portability)
+    latency_rows = (
         await db.execute(
-            select(
-                func.avg(Trace.latency_ms),
-                func.percentile_cont(0.95).within_group(Trace.latency_ms),
-                func.percentile_cont(0.99).within_group(Trace.latency_ms),
-            ).where(Trace.project == project, Trace.start_time >= since, Trace.latency_ms.isnot(None))
+            select(Trace.latency_ms).where(
+                Trace.project == project, Trace.start_time >= since, Trace.latency_ms.isnot(None)
+            )
         )
-    ).first()
+    ).scalars().all()
 
-    avg_latency = float(latency_stats[0]) if latency_stats and latency_stats[0] else None
-    p95_latency = float(latency_stats[1]) if latency_stats and latency_stats[1] else None
-    p99_latency = float(latency_stats[2]) if latency_stats and latency_stats[2] else None
+    if latency_rows:
+        sorted_latencies = sorted(latency_rows)
+        n = len(sorted_latencies)
+        avg_latency = sum(sorted_latencies) / n
+        p95_latency = sorted_latencies[min(int(n * 0.95), n - 1)]
+        p99_latency = sorted_latencies[min(int(n * 0.99), n - 1)]
+    else:
+        avg_latency = p95_latency = p99_latency = None
 
     # Token and cost totals
     token_cost = (

@@ -10,20 +10,28 @@ from src.db.models import Base
 
 settings = get_settings()
 
-# Ensure async URL format
+# Determine database URL — fall back to SQLite if no PostgreSQL configured
 db_url = settings.db.url
-if db_url.startswith("postgresql://") and "+asyncpg" not in db_url:
-    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+if not db_url or db_url.startswith("postgresql"):
+    import os
+    if not os.environ.get("DATABASE_URL"):
+        db_url = "sqlite+aiosqlite:///./agentops.db"
+    elif db_url.startswith("postgresql://") and "+asyncpg" not in db_url:
+        db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Use NullPool for serverless environments (Render free tier)
-engine = create_async_engine(
-    db_url,
-    echo=settings.db.echo,
-    pool_pre_ping=True,
-    poolclass=NullPool if settings.app_env == "production" else None,
-    pool_size=10 if settings.app_env != "production" else None,
-    max_overflow=20 if settings.app_env != "production" else None,
-)
+# Use NullPool for serverless/SQLite, connection pool for PostgreSQL
+is_sqlite = db_url.startswith("sqlite")
+engine_kwargs: dict = {
+    "echo": settings.db.echo,
+    "pool_pre_ping": True,
+}
+if is_sqlite or settings.app_env == "production":
+    engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+
+engine = create_async_engine(db_url, **engine_kwargs)
 
 async_session_factory = async_sessionmaker(
     engine,

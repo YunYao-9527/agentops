@@ -31,16 +31,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Static files and templates
+# Static files
 import os
 
 static_dir = os.path.join(os.path.dirname(__file__), "web", "static")
-templates_dir = os.path.join(os.path.dirname(__file__), "web", "templates")
-
 if os.path.isdir(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-templates = Jinja2Templates(directory=templates_dir)
 
 # Register API routers
 from src.api.ingestion import router as ingestion_router
