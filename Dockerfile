@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml README.md ./
 COPY agentops/ ./agentops/
 COPY src/ ./src/
-RUN pip install --no-cache-dir . 2>/dev/null
+RUN pip install --no-cache-dir .
 
 COPY . .
 

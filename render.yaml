@@ -1,3 +1,4 @@
+# Preview deployment. SQLite data is ephemeral on Render Free.
 services:
   - type: web
     name: agentops
@@ -5,28 +6,13 @@ services:
     plan: free
     buildCommand: pip install -e .
     startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.14"
       - key: DATABASE_URL
-        fromDatabase:
-          name: agentops-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          name: agentops-redis
-          type: redis
-          property: connectionString
+        value: sqlite+aiosqlite:///./agentops.db
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: "false"
-
-  - type: redis
-    name: agentops-redis
-    plan: free
-    ipAllowList: []
-
-databases:
-  - name: agentops-db
-    plan: free
-    databaseName: agentops
-    ipAllowList: []

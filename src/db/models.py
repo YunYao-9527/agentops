@@ -15,6 +15,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    Uuid,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -27,8 +28,8 @@ else:
     JSONB = JSON
 
     def UUID(as_uuid=False):
-        """SQLite-compatible UUID stored as String(36)."""
-        return String(36)
+        """Convert UUID objects on SQLite as well as on PostgreSQL."""
+        return Uuid(as_uuid=as_uuid)
 
 
 class Base(DeclarativeBase):

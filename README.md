@@ -1,5 +1,7 @@
 # AgentOps — Agent 评测与可观测平台
 
+> [在线项目页](https://yunyao-9527.github.io/agentops/) · [云端运行说明](DEPLOYMENT_CLOUD.md)
+
 一个轻量但功能完整的 AI Agent 评测与可观测平台，参考 Langfuse、Braintrust、LangSmith 的架构设计。
 
 ## 核心功能
