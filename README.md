@@ -2,6 +2,8 @@
 
 > [在线项目页](https://yunyao-9527.github.io/agentops/) · [云端运行说明](DEPLOYMENT_CLOUD.md)
 
+**[打开在线系统](https://yunyao-agentops.onrender.com/evaluations)**：创建示例数据集、运行规则评测并查看持久化 Trace，无需模型密钥。使用 Render Free，休眠后首次访问可能需要等待；演示数据可能在重启后重置。
+
 一个具备可运行评测闭环的 AI Agent 评测与可观测原型，参考 Langfuse、Braintrust、LangSmith 的架构设计。现有 12 项测试通过，涵盖真实 API 执行、评分、Trace 与结果持久化。
 
 ## 核心功能

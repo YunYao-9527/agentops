@@ -31,6 +31,9 @@ def client(tmp_path, monkeypatch):
 
 
 def test_evaluation_executes_and_persists_traces(client):
+    assert client.get('/evaluations').status_code == 200
+    for asset in ['tailwind.css', 'htmx.min.js', 'alpine.min.js']:
+        assert client.get('/static/vendor/' + asset).status_code == 200
     dataset = client.post('/api/v1/datasets', json={'name': 'regression'}).json()['id']
     response = client.post(f'/api/v1/datasets/{dataset}/items/bulk', json=[
         {'input': {'query': 'hello'}, 'expected_output': {'content': 'hello'}},
