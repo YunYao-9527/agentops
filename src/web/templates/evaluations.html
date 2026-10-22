@@ -1,79 +1,193 @@
-{% extends "base.html" %}
-{% block title %}Evaluations - AgentOps{% endblock %}
-{% block nav_evaluations %}text-white bg-gray-800{% endblock %}
-{% block page_title %}Evaluations{% endblock %}
-
-{% block content %}
-<div x-data="evaluations()" x-init="load()" x-cloak>
-    <div class="bg-white rounded-xl shadow-sm border p-6">
-        <h3 class="font-semibold mb-4">Experiment History</h3>
-
-        <template x-if="experiments.length > 0">
-            <div class="space-y-3">
-                <template x-for="e in experiments" :key="e.id">
-                    <div class="border rounded-lg p-4">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-medium" x-text="e.name"></h4>
-                                <p class="text-xs text-gray-400 mt-1" x-text="'ID: ' + e.id"></p>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                                  :class="{
-                                      'bg-green-100 text-green-700': e.status === 'completed',
-                                      'bg-yellow-100 text-yellow-700': e.status === 'running',
-                                      'bg-gray-100 text-gray-700': e.status === 'pending',
-                                      'bg-red-100 text-red-700': e.status === 'failed',
-                                  }"
-                                  x-text="e.status"></span>
-                        </div>
-
-                        <div class="grid grid-cols-4 gap-4 mt-3 text-sm">
-                            <div>
-                                <div class="text-xs text-gray-500">Items</div>
-                                <div x-text="e.completed_items + '/' + e.total_items"></div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-gray-500">Failed</div>
-                                <div x-text="e.failed_items"></div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-gray-500">Scores</div>
-                                <div x-text="e.aggregate_scores ? JSON.stringify(e.aggregate_scores) : '—'"></div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-gray-500">Created</div>
-                                <div class="text-xs" x-text="new Date(e.created_at).toLocaleString()"></div>
-                            </div>
-                        </div>
-
-                        <!-- Config -->
-                        <div x-show="e.config" class="mt-3 text-xs">
-                            <span class="text-gray-500">Config:</span>
-                            <span class="font-mono text-gray-600" x-text="JSON.stringify(e.config)"></span>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </template>
-        <template x-if="experiments.length === 0">
-            <p class="text-gray-400 text-center py-8">No evaluations run yet.</p>
-        </template>
-    </div>
+{% extends "base.html" %}{% block title %}评测实验 | AgentOps{% endblock %}{%
+block page_title %}评测实验{% endblock %} {% block content %}
+<div class="app-grid">
+  <section class="app-panel">
+    <h3>让数据集跑一次真实评测。</h3>
+    <p class="app-note">
+      选择已记录的输出、回声任务或模型任务，执行评分，再沿着 Trace 检查结果。
+    </p>
+    <form id="run">
+      <label for="dataset">数据集</label
+      ><select id="dataset" required></select
+      ><label for="task">执行方式</label
+      ><select id="task">
+        <option value="recorded_output">评分已记录输出（input.output）</option>
+        <option value="echo">回声任务：返回输入的 query</option>
+        <option value="llm">调用服务端配置的模型</option></select
+      ><label for="name">实验名称</label
+      ><input id="name" value="输出质量回归" required /><label for="rules"
+        >评分规则（可选 JSON 数组）</label
+      ><textarea
+        id="rules"
+        rows="3"
+        placeholder="留空时逐字段对比 expected_output"
+      ></textarea>
+      <div class="app-row" style="margin-top: 20px">
+        <button class="app-button" id="execute">运行评测</button
+        ><button type="button" id="sample" class="app-button secondary">
+          创建示例数据集
+        </button>
+      </div>
+    </form>
+    <p id="status" class="app-note" role="status" aria-live="polite"></p>
+  </section>
+  <section class="app-panel">
+    <h3>怎么看一次评测</h3>
+    <p class="app-note">
+      “评分已记录输出”只读取数据集的
+      input.output，不会把标准答案当成任务输出。示例数据集包含两个正确输出和一个故意错误的输出，用于验证评分与记录流程。
+    </p>
+    <p class="app-note">
+      回声任务无需模型密钥。模型任务会实际调用配置的模型服务，结果与规则评分一起保存。免费实例可能丢失本地数据，重要实验请导出或配置持久数据库。
+    </p>
+    <div id="latest"></div>
+  </section>
 </div>
-
+<section class="app-panel">
+  <h3>实验历史</h3>
+  <div id="history" aria-live="polite">正在读取实验记录</div>
+</section>
 <script>
-function evaluations() {
-    return {
-        experiments: [],
-        async load() {
-            try {
-                const res = await fetch('/api/v1/evaluations');
-                this.experiments = await res.json();
-            } catch (e) {
-                console.error('Failed to load evaluations:', e);
-            }
-        }
+  const el = (id) => document.getElementById(id);
+  async function api(path, body) {
+    const r = await fetch(
+      "/api/v1" + path,
+      body
+        ? {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        : {},
+    );
+    const data = await r.json();
+    if (!r.ok)
+      throw Error(typeof data.detail === "string" ? data.detail : "请求失败");
+    return data;
+  }
+  function text(tag, value) {
+    const node = document.createElement(tag);
+    node.textContent = value;
+    return node;
+  }
+  function scoreText(value) {
+    return typeof value === "number"
+      ? new Intl.NumberFormat("zh-CN", {
+          style: "percent",
+          maximumFractionDigits: 1,
+        }).format(value)
+      : "未完成";
+  }
+  async function load() {
+    const datasets = await api("/datasets");
+    el("dataset").replaceChildren();
+    datasets.forEach((d) => {
+      const option = text("option", d.name + " / " + d.item_count + " 条");
+      option.value = d.id;
+      el("dataset").append(option);
+    });
+    const experiments = await api("/evaluations");
+    el("history").replaceChildren();
+    if (!experiments.length)
+      el("history").append(
+        text("p", "尚无评测记录。先创建数据集，再运行一次评测。"),
+      );
+    experiments.forEach((e) => {
+      const block = document.createElement("div");
+      block.className = "app-result";
+      block.append(
+        text("h4", e.name),
+        text(
+          "p",
+          e.status +
+            " / 成功执行 " +
+            e.completed_items +
+            " 条 / 失败 " +
+            e.failed_items +
+            " 条",
+        ),
+      );
+      if (e.aggregate_scores) {
+        const score = text(
+          "p",
+          scoreText(e.aggregate_scores.overall_score),
+        );
+        score.className = "app-score";
+        block.append(score);
+      }
+      (e.trace_ids || []).forEach((id, i) => {
+        const link = text("a", "查看执行记录 " + (i + 1));
+        link.href = "/traces/" + id;
+        link.style =
+          "display:inline-block;margin-right:16px;font-size:12px;color:#546348";
+        block.append(link);
+      });
+      el("history").append(block);
+    });
+  }
+  el("sample").onclick = async () => {
+    el("sample").disabled = true;
+    try {
+      const d = await api("/datasets", {
+        name: "示例回归 " + new Date().toLocaleString('zh-CN', {hour12: false}),
+        description: "两个正确输出和一个故意错误的输出",
+      });
+      await api("/datasets/" + d.id + "/items/bulk", [
+        {
+          input: { output: { content: "已查询订单" } },
+          expected_output: { content: "已查询订单" },
+        },
+        {
+          input: { output: { content: "请确认退款" } },
+          expected_output: { content: "请确认退款" },
+        },
+        {
+          input: { output: { content: "未检查政策" } },
+          expected_output: { content: "已检查政策" },
+        },
+      ]);
+      await load();
+      el("dataset").value = d.id;
+      el("status").textContent = "示例已创建。运行后预期匹配率为 2/3。";
+    } catch (error) {
+      el("status").textContent = error.message;
+    } finally {
+      el("sample").disabled = false;
     }
-}
+  };
+  el("run").onsubmit = async (event) => {
+    event.preventDefault();
+    el("execute").disabled = true;
+    el("status").textContent = "正在执行任务、评分并保存结果";
+    try {
+      const config = { task: el("task").value };
+      if (el("rules").value.trim()) {
+        config.rules = JSON.parse(el("rules").value);
+        if (!Array.isArray(config.rules))
+          throw Error("评分规则需要是 JSON 数组");
+      }
+      const result = await api("/evaluations/run", {
+        name: el("name").value,
+        dataset_id: el("dataset").value,
+        config,
+      });
+      el("status").textContent = "评测已完成，状态：" + result.status;
+      el("latest").replaceChildren(
+        text("p", "最近一次结果"),
+        text(
+          "strong",
+          scoreText(result.aggregate_scores.overall_score),
+        ),
+      );
+      await load();
+    } catch (error) {
+      el("status").textContent = error.message;
+    } finally {
+      el("execute").disabled = false;
+    }
+  };
+  load().catch((error) => {
+    el("history").textContent = error.message;
+  });
 </script>
 {% endblock %}

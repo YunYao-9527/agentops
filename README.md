@@ -2,7 +2,7 @@
 
 > [在线项目页](https://yunyao-9527.github.io/agentops/) · [云端运行说明](DEPLOYMENT_CLOUD.md)
 
-一个轻量但功能完整的 AI Agent 评测与可观测平台，参考 Langfuse、Braintrust、LangSmith 的架构设计。
+一个具备可运行评测闭环的 AI Agent 评测与可观测原型，参考 Langfuse、Braintrust、LangSmith 的架构设计。现有 12 项测试通过，涵盖真实 API 执行、评分、Trace 与结果持久化。
 
 ## 核心功能
 

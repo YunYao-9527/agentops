@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from src.db import get_db
 from src.db.models import Dataset, Experiment, ExperimentStatus
+from src.core.experiment_service import build_task, execute_experiment
 
 router = APIRouter()
 
@@ -89,26 +90,37 @@ async def run_evaluation(req: RunEvaluationRequest, db: AsyncSession = Depends(g
     if not dataset.items:
         raise HTTPException(status_code=400, detail="Dataset has no items")
 
+    config = req.config or {}
+    try:
+        build_task(config)
+        int(config.get("max_concurrent", 3))
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if len(dataset.items) > 100:
+        raise HTTPException(status_code=400, detail="Split datasets into batches of at most 100 items")
+
     experiment = Experiment(
         name=req.name,
         dataset_id=req.dataset_id,
         status=ExperimentStatus.PENDING,
-        config=req.config,
+        config=config,
         total_items=len(dataset.items),
     )
     db.add(experiment)
     await db.commit()
 
-    # NOTE: Actual evaluation execution is handled by src/core/eval_runner.py
-    # This endpoint just creates the experiment record.
-    # Use `make eval` or the CLI to actually run evaluations.
+    await execute_experiment(db, experiment, dataset.items, config)
 
     return {
         "id": str(experiment.id),
         "name": experiment.name,
         "status": experiment.status.value,
         "total_items": experiment.total_items,
-        "message": "Experiment created. Use the eval runner to execute.",
+        "completed_items": experiment.completed_items,
+        "failed_items": experiment.failed_items,
+        "aggregate_scores": experiment.aggregate_scores,
+        "trace_ids": experiment.trace_ids,
+        "message": "Evaluation finished and results persisted.",
     }
 
 

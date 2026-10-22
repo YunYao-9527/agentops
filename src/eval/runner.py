@@ -55,10 +55,8 @@ async def run_eval(config_path: str) -> dict:
     )
 
     # Task function from config (would be imported dynamically in production)
-    task_fn = config.get("task_fn")
-    if not task_fn:
-        logger.error("No task_fn specified in config")
-        sys.exit(1)
+    from src.core.experiment_service import build_task
+    task_fn = build_task(config)
 
     results = await runner.run(dataset=dataset, task_fn=task_fn, config=config)
 

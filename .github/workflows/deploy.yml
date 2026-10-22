@@ -1,8 +1,7 @@
 name: Deploy to Render
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 # This workflow triggers a Render deploy when code is pushed to main.
 # To set up:
@@ -15,6 +14,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Check Render deploy hook
+        run: test -n "$RENDER_DEPLOY_HOOK" || { echo "Configure RENDER_DEPLOY_HOOK before triggering this workflow."; exit 1; }
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
       - name: Trigger Render Deploy
         if: env.RENDER_DEPLOY_HOOK != ''
         run: |

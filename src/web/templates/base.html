@@ -1,63 +1,285 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{% block title %}AgentOps{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+    <script
+      src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"
+      defer
+    ></script>
     <style>
-        [x-cloak] { display: none !important; }
+      :root {
+        --paper: #f5f5ef;
+        --ink: #30382d;
+        --muted: #79806f;
+        --line: #dce1d4;
+        --accent: #546348;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [x-cloak] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        background: var(--paper) !important;
+        color: var(--ink);
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      }
+      a {
+        text-decoration: none;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      aside.workspace-nav {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 230px;
+        border-right: 1px solid var(--line);
+        padding: 30px 23px;
+        background: #ecefe5;
+        z-index: 40;
+      }
+      .workspace-brand {
+        font-family: Georgia, serif;
+        font-size: 29px;
+        letter-spacing: -1px;
+        margin-bottom: 7px;
+      }
+      .workspace-caption {
+        color: var(--muted);
+        font-size: 11px;
+        margin-bottom: 36px;
+      }
+      .workspace-nav nav {
+        display: grid;
+        gap: 8px;
+      }
+      .workspace-nav nav a {
+        color: #526047;
+        padding: 10px 13px;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      .workspace-nav nav a:hover {
+        background: #dfe6d5;
+      }
+      .workspace-nav .portfolio-link {
+        position: absolute;
+        bottom: 25px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .workspace-main {
+        margin-left: 230px;
+      }
+      .workspace-header {
+        height: 91px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 40px;
+        border-bottom: 1px solid var(--line);
+      }
+      .workspace-header h1 {
+        font:
+          500 27px Georgia,
+          "SimSun",
+          serif;
+        margin: 0;
+      }
+      .workspace-header small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .workspace-content {
+        padding: 34px 40px;
+        max-width: 1500px;
+      }
+      .workspace-content .bg-white {
+        background: #fff;
+      }
+      .workspace-content .shadow-sm {
+        box-shadow: none;
+      }
+      .workspace-content .border {
+        border-color: var(--line);
+      }
+      .workspace-content .bg-blue-600,
+      .workspace-content .bg-indigo-600 {
+        background: var(--accent) !important;
+      }
+      .workspace-content .text-blue-600,
+      .workspace-content .text-indigo-600 {
+        color: var(--accent) !important;
+      }
+      .workspace-content .rounded-xl {
+        border-radius: 10px;
+      }
+      .workspace-content h3 {
+        font-family: Georgia, "SimSun", serif;
+        font-size: 22px;
+        font-weight: 500;
+      }
+      .workspace-content input,
+      .workspace-content select,
+      .workspace-content textarea {
+        background: white;
+        border: 1px solid #ccd4c2;
+        border-radius: 5px;
+        padding: 9px 11px;
+        font: inherit;
+        width: 100%;
+        color: var(--ink);
+      }
+      :focus-visible {
+        outline: 3px solid #ad7550;
+        outline-offset: 3px;
+      }
+      .app-panel {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 26px;
+        margin-bottom: 24px;
+      }
+      .app-panel label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 15px 0 6px;
+      }
+      .app-button {
+        background: var(--accent);
+        color: white;
+        border: 1px solid var(--accent);
+        border-radius: 5px;
+        padding: 9px 15px;
+        font-size: 13px;
+      }
+      .app-button.secondary {
+        background: #fff;
+        color: var(--accent);
+      }
+      .app-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .app-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 25px;
+      }
+      .app-note {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 12px;
+      }
+      .app-result {
+        border-top: 1px solid var(--line);
+        padding: 20px 0;
+      }
+      .app-score {
+        font:
+          34px Georgia,
+          serif;
+        color: var(--accent);
+      }
+      .app-result table {
+        width: 100%;
+        font-size: 13px;
+        border-collapse: collapse;
+      }
+      .app-result td,
+      .app-result th {
+        text-align: left;
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        overflow-wrap: anywhere;
+      }
+      .app-error {
+        color: #9f4b35;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 900px) {
+        aside.workspace-nav {
+          position: static;
+          width: auto;
+          padding: 16px 20px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .workspace-brand {
+          font-size: 23px;
+        }
+        .workspace-caption,
+        .workspace-nav .portfolio-link {
+          display: none;
+        }
+        .workspace-nav nav {
+          display: flex;
+          gap: 4px;
+          overflow: auto;
+        }
+        .workspace-nav nav a {
+          white-space: nowrap;
+          padding: 8px;
+        }
+        .workspace-main {
+          margin: 0;
+        }
+        .workspace-header {
+          height: 73px;
+          padding: 0 22px;
+        }
+        .workspace-header small {
+          display: none;
+        }
+        .workspace-content {
+          padding: 24px 20px;
+        }
+        .app-grid {
+          grid-template-columns: 1fr;
+        }
+        .app-panel {
+          padding: 20px;
+        }
+      }
     </style>
-</head>
-<body class="bg-gray-50 min-h-screen" x-data="{ sidebarOpen: false }">
-    <!-- Sidebar -->
-    <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-200 ease-in-out"
-           :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
-        <div class="flex items-center h-16 px-6 bg-gray-800">
-            <h1 class="text-xl font-bold text-white">🔍 AgentOps</h1>
-        </div>
-        <nav class="mt-6 px-4 space-y-1">
-            <a href="/" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
-                       {% block nav_dashboard %}text-gray-300 hover:bg-gray-800{% endblock %}">
-                📊 Dashboard
-            </a>
-            <a href="/traces" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
-                       {% block nav_traces %}text-gray-300 hover:bg-gray-800{% endblock %}">
-                🔗 Traces
-            </a>
-            <a href="/prompts" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
-                       {% block nav_prompts %}text-gray-300 hover:bg-gray-800{% endblock %}">
-                📝 Prompts
-            </a>
-            <a href="/datasets" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
-                       {% block nav_datasets %}text-gray-300 hover:bg-gray-800{% endblock %}">
-                📁 Datasets
-            </a>
-            <a href="/evaluations" class="nav-link flex items-center px-4 py-2.5 text-sm rounded-lg
-                       {% block nav_evaluations %}text-gray-300 hover:bg-gray-800{% endblock %}">
-                🧪 Evaluations
-            </a>
-        </nav>
+  </head>
+  <body>
+    <aside class="workspace-nav">
+      <div class="workspace-brand">AgentOps</div>
+      <div class="workspace-caption">执行记录与评测工作台</div>
+      <nav>
+        <a href="/">总览</a><a href="/traces">执行链路</a
+        ><a href="/prompts">Prompt 版本</a><a href="/datasets">数据集</a
+        ><a href="/evaluations">评测实验</a>
+      </nav>
+      <a class="portfolio-link" href="https://yunyao-9527.github.io/"
+        >返回项目作品集</a
+      >
     </aside>
-
-    <!-- Main content -->
-    <div class="lg:ml-64">
-        <!-- Top bar -->
-        <header class="h-16 bg-white border-b flex items-center px-6">
-            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden mr-4">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
-            <h2 class="text-lg font-semibold text-gray-800">{% block page_title %}Dashboard{% endblock %}</h2>
-        </header>
-
-        <!-- Page content -->
-        <main class="p-6">
-            {% block content %}{% endblock %}
-        </main>
+    <div class="workspace-main">
+      <header class="workspace-header">
+        <h1>{% block page_title %}执行与评测{% endblock %}</h1>
+        <small>从每一次调用，追到每一个结果</small>
+      </header>
+      <main class="workspace-content">{% block content %}{% endblock %}</main>
     </div>
-</body>
+  </body>
 </html>
