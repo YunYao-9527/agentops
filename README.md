@@ -4,7 +4,9 @@
 
 **[打开在线系统](https://yunyao-agentops.onrender.com/evaluations)**：创建示例数据集、运行规则评测并查看持久化 Trace，无需模型密钥。使用 Render Free，休眠后首次访问可能需要等待；演示数据可能在重启后重置。
 
-一个具备可运行评测闭环的 AI Agent 评测与可观测原型，参考 Langfuse、Braintrust、LangSmith 的架构设计。现有 12 项测试通过，涵盖真实 API 执行、评分、Trace 与结果持久化。
+一个具备可运行评测闭环的 AI Agent 评测与可观测原型，参考 Langfuse、Braintrust、LangSmith 的架构设计。现有 16 项测试通过，涵盖真实 API 执行、评分、Trace 与结果持久化。
+
+线上已接入 DeepSeek 官方 `deepseek-flash`。选择模型任务可执行真实模型评测，模型名和结果写入 Trace；已验证一条实际模型任务得分 1.0。公开版每批最多 3 条，模型调用每日 20 次、单次最多输出 512 tokens。配置与限制见 [模型演示说明](DEEPSEEK_DEMO.md)。
 
 ## 核心功能
 
