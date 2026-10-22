@@ -58,4 +58,7 @@ app.include_router(web_router, tags=["web"])
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.1.0",
+            "llm_configured": bool(settings.llm.openai_api_key),
+            "llm_provider": 'deepseek' if settings.llm.openai_base_url.rstrip('/') in {'https://api.deepseek.com', 'https://api.deepseek.com/v1'} else 'openai',
+            "llm_model": settings.llm.openai_model}

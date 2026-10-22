@@ -1,6 +1,7 @@
 """Evaluation API."""
 
 import uuid
+import os
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -98,6 +99,8 @@ async def run_evaluation(req: RunEvaluationRequest, db: AsyncSession = Depends(g
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if len(dataset.items) > 100:
         raise HTTPException(status_code=400, detail="Split datasets into batches of at most 100 items")
+    if os.getenv('PUBLIC_DEMO', '0') == '1' and config.get('task') == 'llm' and len(dataset.items) > 3:
+        raise HTTPException(status_code=400, detail='Public LLM evaluations allow at most 3 items per batch')
 
     experiment = Experiment(
         name=req.name,

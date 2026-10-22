@@ -54,10 +54,20 @@ def test_evaluation_executes_and_persists_traces(client):
     assert client.get('/api/v1/traces/' + result['trace_ids'][0]).status_code == 200
 
 
-def test_invalid_tasks_are_rejected_before_creating_experiment(client):
+def test_invalid_tasks_are_rejected_before_creating_experiment(client, monkeypatch):
     dataset = client.post('/api/v1/datasets', json={'name': 'invalid task'}).json()['id']
     client.post(f'/api/v1/datasets/{dataset}/items', json={'input': {'query': 'x'}})
     response = client.post('/api/v1/evaluations/run', json={
         'name': 'invalid', 'dataset_id': dataset, 'config': {'task': '__import__'},
     })
     assert response.status_code == 400
+    from src.config import get_settings
+    monkeypatch.setattr(get_settings().llm, 'openai_api_key', 'unit-test')
+    monkeypatch.setenv('PUBLIC_DEMO', '1')
+    for _ in range(3):
+        client.post(f'/api/v1/datasets/{dataset}/items', json={'input': {'query': 'x'}})
+    response = client.post('/api/v1/evaluations/run', json={
+        'name': 'oversized model batch', 'dataset_id': dataset, 'config': {'task': 'llm'},
+    })
+    assert response.status_code == 400
+    assert 'at most 3' in response.json()['detail']

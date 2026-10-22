@@ -9,6 +9,7 @@ from src.core.eval_runner import EvalRunner
 from src.core.scorers.base import Scorer, ScorerResult
 from src.core.scorers.rule_scorer import RuleScorer
 from src.db.models import ExperimentStatus, Score, Span, Trace
+from src.core.llm_budget import model_budget
 
 
 class ExpectedOutputScorer(Scorer):
@@ -36,12 +37,17 @@ def build_task(config):
         if task_name == "echo":
             return {"content": content}
         from openai import AsyncOpenAI
-        async with AsyncOpenAI(api_key=get_settings().llm.openai_api_key) as client:
+        settings = get_settings().llm
+        model_budget.reserve({'messages': [{'role': 'user', 'content': content}]})
+        extra = {'extra_body': {'thinking': {'type': 'disabled'}}} if settings.openai_base_url.rstrip('/') in {'https://api.deepseek.com', 'https://api.deepseek.com/v1'} else {}
+        async with AsyncOpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url, timeout=35.0, max_retries=0) as client:
             response = await client.chat.completions.create(
                 model=get_settings().llm.openai_model,
                 messages=[{"role": "user", "content": content}],
+                max_tokens=512,
+                **extra,
             )
-            return {"content": response.choices[0].message.content or ""}
+            return {"content": response.choices[0].message.content or "", "model": response.model}
 
     return task
 
